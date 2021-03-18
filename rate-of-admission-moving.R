@@ -125,7 +125,7 @@ join %>%
 
 
 join %>%
-  filter(prov == '서울') %>%
+  filter(prov == '경기') %>%
   filter(adm.per.pop.total > 0.5, adm.per.pop.total < 1.5) %>% 
   ggplot(aes(x = as.factor(adm.year), y = adm.per.pop.total)) + 
   geom_point(aes(size = adm.total), shape = 1) +
