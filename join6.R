@@ -71,15 +71,17 @@ join_6 %>%
   stat_summary(aes(color = '중간'), fun.y = median, size = 1, geom = 'point') + 
   geom_hline(yintercept = 0, color = 'red') +
   facet_wrap(~adm.year) + 
-  labs(title = '전년도 만6세 대비 초등입학자 비율', x = '연도', y = '초등입학이동지수', size =  '입학생규모') + 
+  labs(title = '전년도 만6세 대비 초등입학자 비율', x = '시도', y = '초등입학이동지수', size =  '입학생규모') + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
   scale_color_manual("", values=c("평균"="red", '중간' = 'blue'))
+
+
 
 yaxis.min <- min(join_6$zscore)
 yaxis.max <- max(join_6$zscore)
 
 
-province <- '전남'
+province <- '경기'
 
 join_6 %>%
   filter(prov == province) %>%
@@ -90,10 +92,10 @@ join_6 %>%
   geom_hline(yintercept = 0, color = 'red') +
 #  ylim(yaxis.min, yaxis.max) +
   facet_wrap(~distinct) + 
-  labs(title = paste0('전년도 만5세 대비 초등입학자 비율 (', province, ')'), x = '연도', y = '초등입학이동지수', size =  '입학생규모') + 
+  labs(title = paste0('전년도 만6세 대비 초등입학자 비율 (', province, ')'), x = '연도', y = '초등입학이동지수', size =  '입학생규모') + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
-year <- 2020
+year <- 2019
 
 join_6 %>%
   filter(adm.year == year) %>%
@@ -105,7 +107,7 @@ join_6 %>%
   geom_hline(yintercept = 0, color = 'red') +
   #  ylim(yaxis.min, yaxis.max) +
 #  facet_wrap(~prov) + 
-  labs(title = paste0('전년도 만5세 대비 초등입학자 비율 (', province, ')'), x = '연도', y = '초등입학이동지수', size =  '입학생규모') + 
+  labs(title = paste0('전년도 만6세 대비 초등입학자 비율 (', year, ')'), x = '시도', y = '초등입학이동지수', size =  '입학생규모') + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 
