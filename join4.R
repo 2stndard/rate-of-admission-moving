@@ -4,7 +4,7 @@ join_4 <- join_4 %>%
   rename('adm.year' = year.x, 'adm.total' = 계, 'adm.male' = 남, 'adm.female' = 여, 'pop.age' = age, 'pop.year' = year.y, 'pop.total' = total, 'pop.male' = male, 'pop.female' = female)
 
 join_4$prov <- factor(join_4$prov, levels = c('서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종', '경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'), ordered = T)
-
+N
 
 correction_4.total <- sum(join_4$adm.total)/sum(join_4$pop.total)
 correction_4.male <- sum(join_4$adm.male)/sum(join_4$pop.male)

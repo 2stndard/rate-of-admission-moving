@@ -150,3 +150,25 @@ temp_factor <- temp %>%
   
 
 factor(labels = temp_factor$prov, levels = desc(temp_factor$estimate))
+
+
+join.6.nest
+model.tidy
+model.tidy$p.value
+format.pval(model.tidy$p.value, digit = 2)
+psycho::format_p(model.tidy$p.value)
+install.packages('psycho')
+library(psycho)
+install.packages('parameters')
+library(parameters)
+format_p()
+?format.pval
+psycho::format_p(p)
+parameters::p_value(model.tidy$tslm.model[1])
+
+
+format.pval(model.tidy$p.value, digit = 2)
+
+scales::pvalue(model.tidy$p.value, accuracy = 0.05, add_p = TRUE)
+
+symnum(model.tidy$p.value, corr = FALSE, na = FALSE, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols = c("***", "**", "*", ".", " "))
