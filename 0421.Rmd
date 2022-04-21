@@ -1,0 +1,32 @@
+---
+title: "초등 신입생 이동지수"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(tidyverse)
+library(showtext)
+showtext_auto()
+
+```
+
+## data import
+
+초등학교 입학 데이터는 kess.kedi.re.kr의 주요통계자료 -> 주제별 공개 데이터 -> [04] 행정구역별 교육통계 요약_학교수 학생수 입학 졸업 교원 직원 학업중단 다문화 등(1999-2021) 데이터를 사용 (https://kess.kedi.re.kr/post/6731852?itemCode=04&menuId=m_02_04_03_01)
+
+```{r cars}
+
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
