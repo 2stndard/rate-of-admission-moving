@@ -140,11 +140,18 @@ population <- population |>
   pivot_longer(names_to = '연도', values_to = '인구수', cols = c('2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022'))
 
 
-join_4 <- full_join(admission_join, population |> filter(연령 == '4세'), by = c('시도', '행정구역', '성별')) |> filter(as.numeric(연도.x) == as.numeric(연도.y) + 2)
+join_4 <- left_join(admission_join, population |> filter(연령 == '4세', is.na(인구수) == FALSE), by = c('시도', '행정구역', '성별')) |> filter(as.numeric(연도.x) == as.numeric(연도.y) + 2)
+
+
+Viewadmission_join |> filter(시도 == '세종')
+
+
+View(population |> filter(연령 == '4세'))
+View(join_4)
 
 join_5 <- full_join(admission_join, population |> filter(연령 == '5세'), by = c('시도', '행정구역', '성별')) |> filter(as.numeric(연도.x) == as.numeric(연도.y) + 1)
 
-full_join(join_4, join_5, by = c('시도', '행정구역', '성별')) |> 
+join_result <- full_join(join_4, join_5, by = c('시도', '행정구역', '성별')) |> 
   filter(as.numeric(연도.y.x) == as.numeric(연도.y.y) - 1) |> 
   select(1:10, 15:17) |> select(-8, -9, -11, -12) |>
   rename(연도 = 연도.x.x, 학제 = 학제.x, 학생수 = 학생수.x, 인구수_2년전_4세 = 인구수.x, 인구수_1년전_5세 = 인구수.y) |>
@@ -153,7 +160,82 @@ full_join(join_4, join_5, by = c('시도', '행정구역', '성별')) |>
          `4세대비1학년변동치` = 학생수 - 인구수_2년전_4세, 
          `4세대비5세변동률` = (인구수_1년전_5세 - 인구수_2년전_4세) / 인구수_2년전_4세, 
          `5세대비1학년변동률` = (학생수 - 인구수_1년전_5세) / 인구수_1년전_5세, 
-         `4세대비1학년변동률` = (학생수 - 인구수_2년전_4세) / 인구수_2년전_4세) |>
-  View()
+         `4세대비1학년변동률` = (학생수 - 인구수_2년전_4세) / 인구수_2년전_4세)
+
+View(join_result)
+## 지도 데이터 로딩
+
+if(!require(sf)) {
+  install.packages('sf')
+  library(sf)
+}
+
+## read_sf()을 사용하여 TL_SCCO_CTPRVN.shp 파일을 읽어옴(옵션은 한글깨짐을 방지하기 위한 인코딩값, 띄어쓰기 주의)
+spdf_shp <- st_read('D:/R/git/rate-of-admission-moving/sig.shp', options = 'ENCODING=CP949')
+View(spdf_shp)
+## sf 객체(Simple Feature)는 별다른 X, Y축의 매핑 없이 geom_sf() 레이어를 생성할 수 있다. 
+spdf_shp |> ggplot() + 
+  ## X축을 long(경도), Y축을 lat(위도), group을 group, color를 id로 매핑하고 fill을 white로 설정한 geom_polygon 레이어 생성 
+  ## simple feature 객체를 사용하여 geom_sf 레이어를 생성
+  geom_sf(color = 'dodgerblue')
 
 
+## rgdal 패키지 설치
+if(!require(geojsonio)) {
+  install.packages('geojsonio')
+  library(geojsonio)
+}
+
+## geojson_read()을 사용하여 TL_SCCO_SIG.json 파일(시군구 행정구분)을 읽어오는데 SpatialPolygonsDataFrame 형태로 읽어옴(what = "sp")
+spdf_geojson <- geojson_read('./TL_SCCO_SIG.json',  what = "sp")
+
+
+## sf 패키지 설치
+if(!require(sf)) {
+  install.packages('sf')
+  library(sf)
+}
+
+## spdf_geojson을 st_as_sf()을 사용하여 simple feature 객체로 저장
+sf_spdf <- st_as_sf(spdf_geojson)
+
+ggplot() + 
+  ## simple feature 객체를 사용하여 geom_sf 레이어를 생성
+  geom_sf(data = sf_spdf, aes(color = SIG_CD), fill = "white", show.legend = F)
+
+
+
+## 법정동코드 읽어들이기
+sig_cd <- read_excel('D:/R/git/rate-of-admission-moving/법정동.xlsx', 
+                         sheet = 'Sheet1', col_names = TRUE,  
+                         col_types = c(rep('text', 9))
+)
+
+sig_cd <- sig_cd |> 
+  mutate(법정동코드 = substr(법정동코드, 1, 5))
+
+View(full_join(sig_cd, join_result, by = c('시도' = '시도', '시군구명' = '행정구역')))
+
+## 법정동 시도코드를 result_join에 추가
+join_result <- join_result |> 
+  mutate(province_id = case_when(
+    시도 == '강원' ~ '42', 
+    시도 == '경기' ~ '41',
+    시도 == '경남' ~ '48',
+    시도 == '경북' ~ '47',
+    시도 == '광주' ~ '29',
+    시도 == '대구' ~ '27',
+    시도 == '대전' ~ '30',
+    시도 == '부산' ~ '26',
+    시도 == '서울' ~ '11',
+    시도 == '세종' ~ '36',
+    시도 == '울산' ~ '31',
+    시도 == '인천' ~ '28',
+    시도 == '전남' ~ '46',
+    시도 == '전북' ~ '45',
+    시도 == '제주' ~ '50',
+    시도 == '충남' ~ '44',
+    시도 == '충북' ~ '43'
+  ))
+
+View(join_result)
