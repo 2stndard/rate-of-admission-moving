@@ -143,7 +143,7 @@ population <- population |>
 join_4 <- left_join(admission_join, population |> filter(연령 == '4세', is.na(인구수) == FALSE), by = c('시도', '행정구역', '성별')) |> filter(as.numeric(연도.x) == as.numeric(연도.y) + 2)
 
 
-Viewadmission_join |> filter(시도 == '세종')
+admission_join |> filter(시도 == '세종')
 
 
 View(population |> filter(연령 == '4세'))
@@ -162,8 +162,15 @@ join_result <- full_join(join_4, join_5, by = c('시도', '행정구역', '성�
          `5세대비1학년변동률` = (학생수 - 인구수_1년전_5세) / 인구수_1년전_5세, 
          `4세대비1학년변동률` = (학생수 - 인구수_2년전_4세) / 인구수_2년전_4세)
 
-View(join_result)
-## 지도 데이터 로딩
+
+result_sigcd <- read_excel('D:/R/data/admission/join_result_ 손편집.xlsx', 
+                             sheet = 'join_result_ 손편집', col_names = TRUE, 
+                             col_types = c(rep('text', 7), rep('numeric', 9)) 
+)
+
+result_sigcd <- result_sigcd |>
+  mutate(SIG_CD = substr(코드, 1, 5))
+
 
 if(!require(sf)) {
   install.packages('sf')
@@ -172,7 +179,7 @@ if(!require(sf)) {
 
 ## read_sf()을 사용하여 TL_SCCO_CTPRVN.shp 파일을 읽어옴(옵션은 한글깨짐을 방지하기 위한 인코딩값, 띄어쓰기 주의)
 spdf_shp <- st_read('D:/R/git/rate-of-admission-moving/sig.shp', options = 'ENCODING=CP949')
-View(spdf_shp)
+
 ## sf 객체(Simple Feature)는 별다른 X, Y축의 매핑 없이 geom_sf() 레이어를 생성할 수 있다. 
 spdf_shp |> ggplot() + 
   ## X축을 long(경도), Y축을 lat(위도), group을 group, color를 id로 매핑하고 fill을 white로 설정한 geom_polygon 레이어 생성 
@@ -204,12 +211,36 @@ ggplot() +
   geom_sf(data = sf_spdf, aes(color = SIG_CD), fill = "white", show.legend = F)
 
 
+map_join <- full_join(spdf_shp, result_sigcd |> filter(성별 == '전체', 연도 == '2021'), by = 'SIG_CD')
+
+map_join1 <- left_join(result_sigcd |> filter(성별 == '전체', 연도 == '2021'), spdf_shp, by = 'SIG_CD')
+
+View(as.data.frame(map_join)[, 1:19])
+
+write_csv(as.data.frame(map_join)[, 1:19], 'a.csv', sep = '\t', fileEncoding ='UTF-8')
+
+View(map_join)
+write.csv(as.data.frame(map_join)[, 1:19], 'a.csv', sep = '\t', fileEncoding = 'cp949')
+
+map_join |>
+  ggplot() + 
+  ## fill을 일반대학으로 매핑하고 color를 설정한 geom_sf 레이어 생성
+  geom_sf(aes(fill = `4세대비1학년변동률`), color = 'dodgerblue') + 
+  ## fill 스케일을 흰색부터 dodgerblue까지의 그래디언트 색으로 설정
+  scale_fill_gradient(low = 'white', high = 'dodgerblue')
 
 ## 법정동코드 읽어들이기
 sig_cd <- read_excel('D:/R/git/rate-of-admission-moving/법정동.xlsx', 
                          sheet = 'Sheet1', col_names = TRUE,  
                          col_types = c(rep('text', 9))
 )
+
+
+
+
+
+
+
 
 sig_cd <- sig_cd |> 
   mutate(법정동코드 = substr(법정동코드, 1, 5))
