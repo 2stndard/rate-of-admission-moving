@@ -12,6 +12,7 @@ admission_2021 <- read_excel('D:/R/data/유초 주요-04 시도별 행정구역�
                              sheet = '2021', skip = 11, col_names = FALSE, 
                              col_types = c(rep('text', 4), rep('numeric', 123)) 
                              )
+dim(admission_2021) + dim(admission_15_20) + dim(admission_13_14)
 ## 15~20년 데이터 로딩
 admission_15_20 <- read_excel('D:/R/data/유초 주요-04 시도별 행정구역별 교육통계 현황_방통제외(1999-2021)_20220401y.xlsx', 
                               sheet = '2015-2020', skip = 12, col_names = FALSE, 
@@ -46,6 +47,8 @@ admission_13_14 <- admission_13_14 |>
 
 ## 21년, 15~20년, 13~14년 데이터를 합쳐서 하나의 데이터프레임으로 합침
 admission <- rbind(admission_2021, admission_15_20, admission_13_14)
+
+admission |> filter(시도 == '경남') |> View()
 
 ## 시도 순서를 설정하기 위해 시도를 factor로 변경하고 순서를 설정
 admission$시도 <- fct_relevel(admission$시도, '서울', '부산', '대구',  '인천', '광주', '대전', '울산', '세종', '경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주')
@@ -133,17 +136,21 @@ population <- read_excel('D:/R/data/행정구역_시군구_구(220510).xlsx',
                              col_types = c(rep('text', 4), rep('numeric', 15))
                              )
 
+
 colnames(population) <- c('시도', '행정구역', '연령', '성별', '2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022')
 
 ## 인구 데이터를 길게 만듦
 population <- population |>
   pivot_longer(names_to = '연도', values_to = '인구수', cols = c('2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022'))
 
+population |> filter(시도 == '경남') |> View()
+
+
 
 join_4 <- left_join(admission_join, population |> filter(연령 == '4세', is.na(인구수) == FALSE), by = c('시도', '행정구역', '성별')) |> filter(as.numeric(연도.x) == as.numeric(연도.y) + 2)
 
 
-admission_join |> filter(시도 == '세종')
+join_4 |> filter(시도 == '경남') |> View()
 
 
 View(population |> filter(연령 == '4세'))
@@ -163,13 +170,18 @@ join_result <- full_join(join_4, join_5, by = c('시도', '행정구역', '성�
          `4세대비1학년변동률` = (학생수 - 인구수_2년전_4세) / 인구수_2년전_4세)
 
 
+join_result |> filter(행정구역 == '창원시') |> write.csv('b.csv', sep = '\t', fileEncoding = 'cp949')
+
+
 result_sigcd <- read_excel('D:/R/data/admission/join_result_ 손편집.xlsx', 
                              sheet = 'join_result_ 손편집', col_names = TRUE, 
                              col_types = c(rep('text', 7), rep('numeric', 9)) 
 )
 
 result_sigcd <- result_sigcd |>
-  mutate(SIG_CD = substr(코드, 1, 5))
+  mutate(SIG_CD = substr(코드, 1, 4))
+
+result_sigcd |> filter(SIG_CD == '4812')
 
 
 if(!require(sf)) {
@@ -181,7 +193,8 @@ if(!require(sf)) {
 spdf_shp <- st_read('D:/R/git/rate-of-admission-moving/sig.shp', options = 'ENCODING=CP949')
 
 ## sf 객체(Simple Feature)는 별다른 X, Y축의 매핑 없이 geom_sf() 레이어를 생성할 수 있다. 
-spdf_shp |> ggplot() + 
+spdf_shp |> 
+  ggplot() + 
   ## X축을 long(경도), Y축을 lat(위도), group을 group, color를 id로 매핑하고 fill을 white로 설정한 geom_polygon 레이어 생성 
   ## simple feature 객체를 사용하여 geom_sf 레이어를 생성
   geom_sf(color = 'dodgerblue')
@@ -211,7 +224,14 @@ ggplot() +
   geom_sf(data = sf_spdf, aes(color = SIG_CD), fill = "white", show.legend = F)
 
 
-map_join <- full_join(spdf_shp, result_sigcd |> filter(성별 == '전체', 연도 == '2021'), by = 'SIG_CD')
+spdf_shp |> filter(SIG_CD == '4812')
+
+spdf_shp <- spdf_shp |>
+  mutate(SIG_CD = substr(SIG_CD, 1, 4))
+
+map_join <- full_join(spdf_shp, result_sigcd |> filter(성별 == '전체'), by = 'SIG_CD')
+
+map_join
 
 map_join1 <- left_join(result_sigcd |> filter(성별 == '전체', 연도 == '2021'), spdf_shp, by = 'SIG_CD')
 
@@ -222,30 +242,175 @@ write_csv(as.data.frame(map_join)[, 1:19], 'a.csv', sep = '\t', fileEncoding ='U
 View(map_join)
 write.csv(as.data.frame(map_join)[, 1:19], 'a.csv', sep = '\t', fileEncoding = 'cp949')
 
-map_join |>
+map_join <- map_join |> select(-c(2, 3)) |> distinct(c(1:17))
+
+map_join |> filter(시도 == '인천')
+
+result_sigcd  |> filter(SIG_CD == '4812') |> filter(성별 == '전체', 연도 == '2021')
+
+library(RColorBrewer)
+
+
+map_join |> filter(시도 %in% c('서울'), 연도 == '2021') |>
   ggplot() + 
   ## fill을 일반대학으로 매핑하고 color를 설정한 geom_sf 레이어 생성
-  geom_sf(aes(fill = `4세대비1학년변동률`), color = 'dodgerblue') + 
+  geom_sf(aes(fill = `4세대비1학년변동률`*100), color = 'gray80', size = 0.1) + 
   ## fill 스케일을 흰색부터 dodgerblue까지의 그래디언트 색으로 설정
-  scale_fill_gradient(low = 'white', high = 'dodgerblue')
+  scale_fill_gradient2(low = "dark blue",
+                       mid = "white",
+                       high = "red",
+                       midpoint = 0,
+                       limits = c(-70, 70)) +
+  geom_sf_text(aes(label = paste0(행정구역, '\n', round(`4세대비1학년변동률`*100, 1), '%')), size = 2) +
+  theme(
+    text = element_text(lineheight=0.1),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), 
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    panel.background = element_rect(fill = "gray95")
+  ) + 
+  labs(x = '', y = '', fill = '변동률', title = '서울')
+  ggsave(paste0('서울.pdf'), device = 'pdf', dpi = 300)
 
-## 법정동코드 읽어들이기
-sig_cd <- read_excel('D:/R/git/rate-of-admission-moving/법정동.xlsx', 
-                         sheet = 'Sheet1', col_names = TRUE,  
-                         col_types = c(rep('text', 9))
-)
+i <- unique(admission$시도)
+
+for (year in 2015:2021) {
+  for(i in  unique(admission$시도)) {
+    map_join |> filter(시도 == i, 연도 == year) |>
+      ggplot() + 
+      ## fill을 일반대학으로 매핑하고 color를 설정한 geom_sf 레이어 생성
+      geom_sf(aes(fill = `4세대비1학년변동률`*100), color = 'gray80', size = 0.1) + 
+      ## fill 스케일을 흰색부터 dodgerblue까지의 그래디언트 색으로 설정
+      scale_fill_gradient2(low = "dark blue",
+                          mid = "white",
+                          high = "red",
+                          midpoint = 0,
+                          limits = c(-70, 70)) +
+      geom_sf_text(aes(label = paste0(행정구역, '\n', round(`4세대비1학년변동률`*100, 1), '%')), size = 2) +
+      theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), 
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        panel.background = element_rect(fill = "gray95")
+      ) + 
+      labs(x = '', y = '', fill = '변동률')
+    
+      ggsave(paste0(i, '_', year, '.pdf'), device = 'pdf', dpi = 300)
+  }
+}
+
+
+
+for (year in 2015:2021) {
+  i <- c('서울', '부산', '대구',  '인천', '광주', '대전', '울산', '경기', '강원', '충남', '전북', '전남', '경북', '경남')
+  for(i in i) {
+    
+    ## calculate_grid()를 사용하여 sf_spdf_seoul_joined를 육각형 그리드형태로 변환
+    new_cells_hex <- calculate_grid(shape = map_join |> filter(시도 == i, 연도 == year), grid_type = "hexagonal", seed=20)
+    
+    ## assign_polygons()을 사용하여 sf_spdf_seoul_joined위에 new_cells_hex을 할당
+    resulthex <- assign_polygons(map_join |> filter(시도 == i, 연도 == year), new_cells_hex)
+    
+    resulthex |>
+      ggplot() +
+      ## fill을 대학수로 매핑한 geom_sf 레이어 생성
+      geom_sf(aes(fill =  `X4세대비1학년변동률`*100)) + 
+      ## X축을 V1, Y축을 V2, label을 SIG_KOR_NM을 매핑한 geom_text 레이어 추가
+      geom_text(aes(x = V1, y = V2, label = paste0(SIG_KOR_NM, '\n', round(`X4세대비1학년변동률`*100, 1), '%')), size = 2) + 
+      ## fill 스케일을 흰색부터 dodgerblue까지 가지는 그래디언트로 설정
+      scale_fill_gradient2(low = "dark blue",
+                           mid = "white",
+                           high = "red",
+                           midpoint = 0,
+                           limits = c(-70, 70)) + 
+      labs(x = '', y = '', fill = '변동률', title = paste0(i, year)) +
+      theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), 
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        panel.background = element_rect(fill = "gray95")
+      )
+    
+    ggsave(paste0(i, '_', year, '_hex', '.pdf'), device = 'pdf', dpi = 300)
+  }
+}
+
+## calculate_grid()를 사용하여 sf_spdf_seoul_joined를 육각형 그리드형태로 변환
+new_cells_hex <- calculate_grid(shape = map_join |> filter(시도 %in% c('경기', '서울', '인천'), 연도 == 2015), grid_type = "hexagonal", learning_rate = 0.05, seed=50)
+
+## assign_polygons()을 사용하여 sf_spdf_seoul_joined위에 new_cells_hex을 할당
+resulthex <- assign_polygons(map_join |> filter(시도 %in% c('경기', '서울', '인천'), 연도 == 2015), new_cells_hex)
+
+resulthex |>
+  ggplot() +
+  ## fill을 대학수로 매핑한 geom_sf 레이어 생성
+  geom_sf(aes(fill =  `X4세대비1학년변동률`*100)) + 
+  ## X축을 V1, Y축을 V2, label을 SIG_KOR_NM을 매핑한 geom_text 레이어 추가
+  geom_text(aes(x = V1, y = V2, label = paste0(SIG_KOR_NM, '\n', round(`X4세대비1학년변동률`*100, 1), '%')), size = 2) + 
+  ## fill 스케일을 흰색부터 dodgerblue까지 가지는 그래디언트로 설정
+  scale_fill_gradient2(low = "dark blue",
+                       mid = "white",
+                       high = "red",
+                       midpoint = 0,
+                       limits = c(-70, 70)) + 
+  labs(x = '', y = '', fill = '변동률', title = paste0(i, year)) +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), 
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    panel.background = element_rect(fill = "gray95")
+  )
+
+ggsave(paste0(i, '_', year, '_hex', '.pdf'), device = 'pdf', dpi = 300)
 
 
 
 
 
+충북_shp <-  map_join |> filter(시도 == '충북')
+
+
+충북_shp <- 충북_shp[-c(10, 11), ]
 
 
 
-sig_cd <- sig_cd |> 
-  mutate(법정동코드 = substr(법정동코드, 1, 5))
 
-View(full_join(sig_cd, join_result, by = c('시도' = '시도', '시군구명' = '행정구역')))
+## calculate_grid()를 사용하여 sf_spdf_seoul_joined를 육각형 그리드형태로 변환
+new_cells_hex <- calculate_grid(shape = 충북_shp, grid_type = "hexagonal")
+## assign_polygons()을 사용하여 sf_spdf_seoul_joined위에 new_cells_hex을 할당
+resulthex <- assign_polygons(충북_shp, new_cells_hex)
+
+resulthex |>
+  ggplot() +
+  ## fill을 대학수로 매핑한 geom_sf 레이어 생성
+  geom_sf(aes(fill =  `X4세대비1학년변동률`*100)) + 
+  ## X축을 V1, Y축을 V2, label을 SIG_KOR_NM을 매핑한 geom_text 레이어 추가
+  geom_text(aes(x = V1, y = V2, label = paste0(행정구역, '\n', round(`X4세대비1학년변동률`*100, 1), '%')), size = 3) + 
+  ## fill 스케일을 흰색부터 dodgerblue까지 가지는 그래디언트로 설정
+  scale_fill_gradient2(low = "dark blue",
+                       mid = "white",
+                       high = "red",
+                       midpoint = 0,
+                       limits = c(-70, 70)) + 
+  labs(x = '', y = '', fill = '변동률', title = paste0(i, year)) +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), 
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    panel.background = element_rect(fill = "gray95")
+  )
+
+
 
 ## 법정동 시도코드를 result_join에 추가
 join_result <- join_result |> 

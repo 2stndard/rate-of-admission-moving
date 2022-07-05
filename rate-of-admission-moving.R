@@ -3,7 +3,7 @@ library(tidyverse)
 library(showtext)
 showtext_auto()
 
-
+utils::sessionInfo()
 ## 입학자료 import 및 데이터 클리닝
 #admission <- read_excel('./admission.xlsx', col_names = T, col_type = c('text', 'text', rep('numeric', 235)))
 
