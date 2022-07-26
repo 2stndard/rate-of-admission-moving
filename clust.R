@@ -1,5 +1,7 @@
 library(tidyverse)
 library(utils)
+library(showtext)
+showtext_auto()
 
 sc <- read.table('./synthetic_control.data', header=F, sep='')
 View(sc)
@@ -100,7 +102,7 @@ eval_clust_data.frame |>
   labs(x = '성능 측정 변수', y = '클러스터수', title = '클러스터 개수별 성능 인덱스') +
   theme(strip.text = element_text(size=7))
 
-cl = slot(cluster_k_shape[13], "cluster") 
+cl = slot(cluster_k_shape[[13]], "cluster") 
 
 dtwclust::plot(cluster_k_shape[[13]])
 
@@ -124,9 +126,9 @@ as.data.frame(cluster_k_shape[[13]]@datalist) |>
   ggplot() +
   geom_line(aes(x = as.Date(paste0(연도, '-01-01')), y = value, group = 지역), alpha = 0.2, color = 'grey30') +
   geom_line(data = centroid, aes(x = as.Date(paste0(연도, '-01-01')), y = value, group = 클러스터)) + 
-  geom_smooth(data = centroid, aes(x = as.Date(paste0(연도, '-01-01')), y = value, group = 클러스터), method = 'loess', color = 'blue') + 
+  geom_smooth(data = centroid, aes(x = as.Date(paste0(연도, '-01-01')), y = value, group = 클러스터), method = 'lm', color = 'blue') + 
   scale_x_date(date_breaks = '2 years', date_labels = '%y') +
-  facet_wrap(~as.factor(클러스터)) + 
+  facet_wrap(~as.factor(클러스터), nrow = 3) + 
   labs(x = '연도', y = '지역 이동성(z score)', title = '지역 이동성 클러스터의 주 패턴 모형') +
   theme(legend.position = 'none')
 
